@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yield or Proceed · Team 24</title>
+<style>
+:root {
+  --bg: #0E1116; --surface: #161B22; --surface-2: #1E252E; --line: #2A323C; --line-strong: #3D4754;
+  --ink: #E6EDF3; --muted: #8B98A5; --teacher: #B392F0; --student: #58A6FF;
+  --yield-fg: #F2CC60; --yield-bg: #3A2E12; --proceed-fg: #56D4BC; --proceed-bg: #12302A;
+  --agree: #3FB950; --disagree: #F0883E; --near-miss-fg: #F0883E; --near-miss-bg: #3B2414;
+  --clear-fg: #3FB950; --clear-bg: #12301B; --unparsed-fg: #8B98A5; --unparsed-bg: #1E252E;
+  --banner-fg: #1A1405; --banner-bg: #F2CC60;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--ink); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+#fixture-banner { display: none; background: var(--banner-bg); color: var(--banner-fg); text-align: center; padding: 8px 16px; font-size: 14px; font-weight: 600; }
+#fixture-banner.on { display: block; }
+nav.site-nav { position: sticky; top: 0; z-index: 50; height: 56px; background: rgba(14,17,22,0.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+nav.site-nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
+.wordmark { font-weight: 600; font-size: 16px; }
+.wordmark span { color: var(--muted); font-weight: 400; margin-left: 8px; }
+.nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nav-links a, .btn { transition: border-color 150ms ease-out, background 150ms ease-out; outline-offset: 2px; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 8px 4px; border-radius: 4px; }
+.nav-links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; }
+.btn:focus-visible, .nav-links a:focus-visible, input:focus-visible, select:focus-visible, button:focus-visible, [tabindex="0"]:focus-visible { outline: 2px solid #58A6FF; outline-offset: 2px; }
+.btn-primary { background: var(--ink); color: var(--bg); border-color: transparent; }
+.btn-primary:hover { opacity: 0.92; }
+.btn-secondary:hover { border-color: var(--line-strong); }
+.btn:disabled, .btn.disabled { opacity: 0.45; cursor: not-allowed; }
+main section { scroll-margin-top: 72px; padding: 64px 0 0; }
+main section:first-of-type { padding-top: 32px; }
+h2.sec-title { font-size: 28px; line-height: 1.15; font-weight: 600; margin: 0 0 8px; }
+.lede { color: var(--muted); margin: 0 0 24px; max-width: 72ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; transition: border-color 150ms ease-out; }
+.card:hover { border-color: var(--line-strong); }
+.card:focus-within { outline: 2px solid var(--student); outline-offset: 0; }
+.pill { display: inline-block; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.pill-yield { background: var(--yield-bg); color: var(--yield-fg); }
+.pill-proceed { background: var(--proceed-bg); color: var(--proceed-fg); }
+.pill-near { background: var(--near-miss-bg); color: var(--near-miss-fg); }
+.pill-clear { background: var(--clear-bg); color: var(--clear-fg); }
+.pill-unparsed { background: var(--unparsed-bg); color: var(--unparsed-fg); }
+.pill-best { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line-strong); margin-left: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.reveal { opacity: 0; transform: translateY(8px); transition: opacity 300ms ease-out, transform 300ms ease-out; }
+.reveal.in { opacity: 1; transform: none; }
+.shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite linear; border-radius: 4px; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes dashflow { to { stroke-dashoffset: -24; } }
+@keyframes hero-loop { 0%,45% { --hero-state: proceed; } 55%,100% { --hero-state: yield; } }
+.hero-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 32px; align-items: start; }
+.hero-eyebrow { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+.hero-head { font-size: 44px; line-height: 1.15; font-weight: 600; margin: 0 0 16px; }
+.hero-sub { font-size: 18px; color: var(--muted); margin: 0 0 24px; max-width: 38ch; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat-tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-height: 96px; display: flex; flex-direction: column; justify-content: center; }
+.stat-tile .num { font-size: 36px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat-tile .cap { font-size: 14px; color: var(--muted); margin-top: 4px; }
+.hero-visual { width: 100%; }
+.hero-stage { position: relative; width: 100%; aspect-ratio: 16/9; max-height: 380px; border-radius: 12px; overflow: hidden; background: #0E1116; }
+.hero-fallback, .hero-video-layer { position: absolute; inset: 0; transition: opacity 300ms ease-out; }
+.hero-fallback { opacity: 1; z-index: 1; }
+.hero-video-layer { opacity: 0; z-index: 2; pointer-events: none; }
+.hero-stage.show-video .hero-fallback { opacity: 0; }
+.hero-stage.show-video .hero-video-layer { opacity: 1; pointer-events: auto; }
+.hero-svg { width: 100%; height: 100%; display: block; }
+.hero-video-card { position: relative; width: 100%; height: 100%; background: #000; }
+.hero-video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-glass-stack { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 6px; }
+.hero-glass { background: rgba(14,17,22,0.72); backdrop-filter: blur(6px); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hero-reason-gradient { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 12px 10px; background: linear-gradient(transparent, rgba(0,0,0,0.75)); z-index: 3; }
+.hero-reason-text { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+.hero-visual-cap { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.hero-ill-legend { font-size: 13px; fill: #8B98A5; }
+.hero-robot-wrap { animation: hero-move 6s ease-in-out infinite; transform-origin: center; }
+.hero-person { animation: hero-person 6s ease-in-out infinite; }
+.hero-halo { animation: hero-halo 6s ease-in-out infinite; }
+.hero-pill { animation: hero-pill 6s step-end infinite; }
+@keyframes hero-move { 0%,40% { transform: translateX(0); } 50%,90% { transform: translateX(36px); } 100% { transform: translateX(0); } }
+@keyframes hero-person { 0%,35% { transform: translate(0,0); } 45%,85% { transform: translate(-72px, 0); } 100% { transform: translate(0,0); } }
+@keyframes hero-halo { 0%,44% { fill: rgba(86, 212, 188, 0.18); stroke: rgba(86, 212, 188, 0.45); } 45%,100% { fill: rgba(242, 204, 96, 0.22); stroke: rgba(242, 204, 96, 0.55); } }
+@keyframes hero-pill { 0%,44% { fill: #12302A; } 45%,100% { fill: #3A2E12; } }
+.hero-pill-proceed { animation: hero-proceed-t 6s step-end infinite; }
+.hero-pill-yield { animation: hero-yield-t 6s step-end infinite; }
+@keyframes hero-proceed-t { 0%,44% { opacity: 1; } 45%,100% { opacity: 0; } }
+@keyframes hero-yield-t { 0%,44% { opacity: 0; } 45%,100% { opacity: 1; } }
+.problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.problem-grid p { margin: 0; }
+.problem-icon { width: 32px; height: 32px; color: var(--muted); margin-bottom: 12px; display: block; }
+.problem-card-title { font-size: 20px; font-weight: 600; margin: 0 0 8px; line-height: 1.2; }
+.problem-card-body { color: var(--muted); font-size: 16px; line-height: 1.5; }
+.problem-close { font-size: 20px; margin-top: 24px; font-weight: 600; border-left: 4px solid var(--teacher); padding-left: 16px; line-height: 1.4; }
+.pipeline-wrap { width: 100%; margin: 0 -8px; }
+.pipeline-svg { width: 100%; height: auto; display: block; min-height: 380px; }
+.pipe-node { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.pipe-node.infra { stroke: var(--line-strong); }
+.pipe-node.embed { stroke: rgba(179, 146, 240, 0.5); stroke-width: 1; }
+.pipe-node.teacher { fill: rgba(179, 146, 240, 0.12); stroke: var(--teacher); stroke-width: 2; }
+.pipe-node.student { fill: rgba(88, 166, 255, 0.1); stroke: var(--student); stroke-width: 2; }
+.pipe-band { stroke: var(--line-strong); stroke-width: 2; }
+.pipe-tick { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.pipe-line { fill: none; stroke: var(--line-strong); stroke-width: 2; stroke-dasharray: 8 4; animation: dashflow 1.6s linear infinite; }
+.pipe-node.lit { stroke: var(--student); }
+.score-verdict { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+.score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+.score-card { position: relative; display: flex; flex-direction: column; }
+.score-card.student { border-color: var(--student); }
+.score-card-head { min-height: 56px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-weight: 600; }
+.score-desc { min-height: 72px; font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.4; }
+.score-metric { margin-bottom: 16px; min-height: 88px; }
+.score-metric-big { font-size: 44px; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.score-metric-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+.score-secondary { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.f1-bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.f1-fill { height: 100%; border-radius: 4px; }
+.f1-fill.student { background: var(--student); }
+.f1-fill.base { background: var(--muted); }
+.score-explainer { color: var(--muted); font-size: 14px; margin-top: 16px; }
+details { margin-top: 16px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.clip-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: none; background: var(--surface-2); color: var(--muted); padding: 8px 12px; font-size: 13px; cursor: pointer; min-height: 40px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); font-weight: 600; }
+.clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.clip-card { padding: 0; overflow: hidden; }
+.clip-bar { height: 4px; }
+.clip-bar.agree { background: var(--agree); }
+.clip-bar.disagree { background: var(--disagree); }
+.clip-body { padding: 16px; }
+.clip-video-wrap { aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; }
+.clip-video-wrap video { width: 100%; height: 100%; object-fit: contain; }
+.no-video { color: var(--muted); font-size: 14px; padding: 16px; text-align: center; }
+.badge-block { margin: 12px 0; min-width: 0; }
+.badge-row { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; margin: 0 0 6px; font-size: 13px; }
+.badge-tag, .badge-row .pill { white-space: nowrap; flex-shrink: 0; }
+.clip-meta-line { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.decision-row { display: grid; grid-template-columns: 84px 1fr; gap: 8px; margin-bottom: 8px; align-items: start; }
+.decision-label { display: flex; align-items: center; gap: 6px; font-size: 14px; min-width: 0; }
+.decision-content { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.row-teacher-reason { font-size: 14px; margin: 0 0 8px 92px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.conf-meter { width: 32px; height: 8px; flex-shrink: 0; background: var(--surface-2); border-radius: 4px; }
+.conf-meter .conf-fill { display: block; height: 100%; }
+.conf-fill { height: 100%; background: var(--student); border-radius: 4px; }
+.desk-form { display: grid; grid-template-columns: 1fr 200px auto; gap: 8px; margin-bottom: 8px; }
+input, select { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 16px; min-height: 40px; width: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; min-height: 32px; font-family: inherit; }
+.chip:hover { border-color: var(--line-strong); }
+.desk-status { margin-bottom: 16px; font-size: 14px; color: var(--muted); }
+.desk-steps { list-style: none; padding: 0; margin: 8px 0 16px; font-size: 14px; color: var(--muted); }
+.desk-steps li.bold { color: var(--ink); font-weight: 600; }
+.label-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.label-chip { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; font-size: 13px; }
+.steps-list { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+.steps-list li { margin-bottom: 24px; padding-left: 40px; position: relative; }
+.steps-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+.limits ul { margin: 0; padding-left: 20px; }
+.limits li { margin-bottom: 12px; }
+.credits { display: flex; flex-wrap: wrap; gap: 8px; margin: 32px 0 16px; }
+.credit-chip { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.credit-chip b { display: block; font-size: 14px; }
+.credit-chip span { color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding: 24px 0 48px; font-size: 14px; color: var(--muted); }
+footer a { color: var(--ink); margin-right: 16px; }
+.skeleton-card { min-height: 280px; }
+@media (max-width: 1100px) { .nav-hide-narrow { display: none; } }
+@media (max-width: 900px) {
+  .hero-grid, .problem-grid, .score-grid, .desk-form { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, .reveal { animation: none !important; transition-duration: 0ms !important; opacity: 1 !important; transform: none !important; }
+  .pipe-line { animation: none; }
+  .hero-robot-wrap, .hero-person, .hero-halo, .hero-pill, .hero-pill-proceed, .hero-pill-yield { animation: none !important; }
+  .hero-halo { fill: rgba(242, 204, 96, 0.22); stroke: rgba(242, 204, 96, 0.55); }
+  .hero-pill { fill: #3A2E12; }
+  .hero-pill-proceed { opacity: 0; }
+  .hero-pill-yield { opacity: 1; }
+  .shimmer { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="fixture-banner" role="status">Sample data for preview. Not real results.</div>
+<noscript><div class="wrap"><div class="card" style="margin:16px 0">This page needs JavaScript for live results.</div></div></noscript>
+<header>
+<nav class="site-nav" aria-label="Primary">
+  <div class="wrap">
+    <div class="wordmark"><a href="#top" style="color:inherit;text-decoration:none">Yield or Proceed</a><span>Team 24</span></div>
+    <div class="nav-links" id="nav-links"></div>
+  </div>
+</nav>
+</header>
+<main id="main">
+<section id="top" aria-labelledby="hero-title"><div class="wrap reveal"><div class="hero-grid">
+  <div>
+    <p class="hero-eyebrow">VAST Builders Challenge · Team 24</p>
+    <h1 class="hero-head" id="hero-title">Teaching a warehouse robot when to yield.</h1>
+    <p class="hero-sub">Cosmos watches our warehouse footage and labels every moment. A tiny model learns to make the same call from where people and machines are. W&amp;B keeps the receipts.</p>
+    <div class="hero-actions" id="hero-actions"></div>
+    <div class="stat-row" id="hero-stats"></div>
+  </div>
+  <div class="hero-ill" aria-hidden="true">
+    <svg class="hero-svg" viewBox="0 0 400 360" preserveAspectRatio="xMidYMid meet" role="img"><title>Top-down warehouse aisle: robot, person, gap</title>
+      <rect x="0" y="0" width="400" height="360" rx="16" fill="#0E1116"/>
+      <rect x="16" y="20" width="368" height="56" rx="8" fill="#1E252E" stroke="#2A323C"/>
+      <rect x="16" y="284" width="368" height="56" rx="8" fill="#1E252E" stroke="#2A323C"/>
+      <text x="200" y="52" text-anchor="middle" fill="#8B98A5" font-size="12">shelving racks</text>
+      <text x="200" y="316" text-anchor="middle" fill="#8B98A5" font-size="12">shelving racks</text>
+      <line x1="200" y1="88" x2="200" y2="272" stroke="#3D4754" stroke-width="3" stroke-dasharray="12 10"/>
+      <g class="hero-robot-wrap">
+        <ellipse class="hero-halo" cx="118" cy="188" rx="68" ry="50" fill="rgba(86,212,188,0.18)" stroke="rgba(86,212,188,0.45)" stroke-width="2"/>
+        <rect class="hero-pill" x="78" y="108" width="88" height="28" rx="14" fill="#12302A"/>
+        <text class="hero-pill-proceed" x="122" y="126" text-anchor="middle" fill="#56D4BC" font-size="12" font-weight="600">PROCEED</text>
+        <text class="hero-pill-yield" x="122" y="126" text-anchor="middle" fill="#F2CC60" font-size="12" font-weight="600">YIELD</text>
+        <rect x="63" y="160" width="110" height="56" rx="12" fill="#58A6FF"/>
+        <rect x="51" y="172" width="18" height="22" rx="4" fill="#3D8EEB"/>
+        <text x="118" y="194" text-anchor="middle" fill="#0E1116" font-size="13" font-weight="600">robot</text>
+      </g>
+      <g class="hero-person">
+        <circle cx="290" cy="178" r="20" fill="#B392F0"/>
+        <text x="290" y="218" text-anchor="middle" fill="#E6EDF3" font-size="12">person</text>
+      </g>
+      <line x1="150" y1="188" x2="268" y2="178" stroke="#8B98A5" stroke-width="2" stroke-dasharray="8 6"/>
+      <text x="209" y="168" text-anchor="middle" fill="#8B98A5" font-size="13">gap</text>
+    </svg>
+  </div>
+</div></div></section>
+
+<section id="problem" aria-labelledby="problem-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="problem-title">Every few seconds, a robot has to choose.</h2>
+  <div class="problem-grid">
+    <div class="card"><p class="bold">Yield or proceed?</p><p class="muted">A person steps near a moving cart. Stop, or keep going?</p></div>
+    <div class="card"><p class="bold">Labels are the bottleneck.</p><p class="muted">Teaching a robot takes thousands of labeled clips. People labeling video is slow and expensive.</p></div>
+    <div class="card"><p class="bold">The footage already exists.</p><p class="muted">Our warehouse cameras are already indexed on VAST. What's missing is the labels.</p></div>
+  </div>
+  <p class="problem-close">So we let Cosmos do the labeling, and trained something small enough to run on the robot.</p>
+</div></section>
+
+<section id="idea" aria-labelledby="idea-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="idea-title">How it learns</h2>
+  <p class="lede">Cosmos is the teacher. YOLO is the ruler. A tiny model is the student. W&amp;B is the lab notebook.</p>
+  <div class="pipeline-wrap"><svg class="pipeline-svg" viewBox="0 0 1200 450" id="pipeline-svg" role="img"></svg></div>
+  <p class="mono" style="color:var(--muted);margin-top:16px">Every Cosmos and YOLO call goes through the VSS retrieval API. Nothing calls the GPUs directly.</p>
+</div></section>
+
+<section id="score" aria-labelledby="score-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="score-title">Does the student match the teacher?</h2>
+  <p class="lede" id="score-lede">Tested on held-out clips it never saw during training.</p>
+  <div id="score-verdict" class="score-verdict"></div>
+  <div id="score-grid" class="score-grid"></div>
+  <p class="score-explainer">Why not just count right answers? Saying 'proceed' every time is often right, and never stops for a person. The balanced score rewards getting both calls right.</p>
+  <details id="score-details"><summary>Details: by scene and the full breakdown</summary><div id="score-details-body"></div></details>
+</div></section>
+
+<section id="clips" aria-labelledby="clips-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="clips-title">Teacher vs student, clip by clip.</h2>
+  <p class="lede" id="clips-summary">Loading clips…</p>
+  <div class="clip-controls" id="clip-controls"></div>
+  <div class="clip-grid" id="clip-grid"></div>
+  <div style="margin-top:16px" id="clip-more"></div>
+</div></section>
+
+<section id="desk" aria-labelledby="desk-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="desk-title">Try it live: the near-miss desk.</h2>
+  <p class="lede">Ask a safety question. It searches the real warehouse footage, checks YOLO's boxes, and asks a W&amp;B-hosted model for a verdict.</p>
+  <form id="desk-form" class="desk-form">
+    <input id="desk-question" name="question" placeholder="person close to a moving vehicle" autocomplete="off">
+    <select id="desk-location" name="location"><option value="">All scenes</option></select>
+    <button type="submit" class="btn btn-primary" id="desk-submit">Review</button>
+  </form>
+  <div class="chips" id="desk-chips"></div>
+  <div class="desk-status" id="desk-status"></div>
+  <ul class="desk-steps" id="desk-steps" hidden></ul>
+  <div id="desk-results"></div>
+</div></section>
+
+<section id="details" aria-labelledby="details-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="details-title">Under the hood</h2>
+  <ol class="steps-list" id="steps-list"></ol>
+</div></section>
+
+<section id="limits" aria-labelledby="limits-title"><div class="wrap reveal">
+  <h2 class="sec-title" id="limits-title">What this is, and what it isn't.</h2>
+  <div class="card limits">
+    <ul>
+      <li>About 240 clips, from only two scenes. One is synthetic. This is a working data engine and a baseline model, not a deployable robot policy.</li>
+      <li>Labels come from Cosmos Reason reading captions, not from humans or pixels. The model learns to agree with Cosmos.</li>
+      <li>YOLO cannot name robots, so geometry treats every non-person box as a machine.</li>
+    </ul>
+    <p class="mono" style="color:var(--muted);margin:16px 0 0">Next step: re-ingest with a labeling prompt, so labels come from the video itself rather than its captions.</p>
+  </div>
+  <div class="credits" id="credits"></div>
+</div></section>
+</main>
+<footer><div class="wrap" id="footer-links"></div></footer>
+<script>
+(() => {
+"use strict";
+const BASE = location.pathname.replace(/showcase(\.html)?\/?$/, "");
+const api = (p) => BASE + p.replace(/^\//, "");
+const mediaUrl = (m) => (m ? api(m) : "");
+const params = new URLSearchParams(location.search);
+const fixtureMode = params.get("fixture") || "";
+const isFixture = fixtureMode !== "";
+
+function el(tag, attrs, ...children) {
+  const node = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v;
+      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (v !== false && v != null) node.setAttribute(k, v === true ? "" : String(v));
+    }
+  }
+  for (const ch of children.flat()) {
+    if (ch == null) continue;
+    node.appendChild(typeof ch === "string" ? document.createTextNode(ch) : ch);
+  }
+  return node;
+}
+
+function sanitize(s) {
+  if (typeof s !== "string") return "";
+  return s.includes("s3://") ? s.replace(/s3:\/\/[^\s]+/g, "[storage path]") : s;
+}
+
+function titleCaseLoc(raw) {
+  if (raw === "indoor") return "Indoor warehouse";
+  if (raw === "warehouse3") return "Synthetic warehouse";
+  if (!raw) return "";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function machineLabel(m) {
+  const map = { humanoid: "Humanoid robot", agv: "AGV (robot cart)", forklift: "Forklift", other: "Other machine", none: "No machine" };
+  return map[m] || m || "";
+}
+
+function decisionPill(dec) {
+  const d = (dec || "").toLowerCase();
+  const cls = d === "yield" ? "pill-yield" : "pill-proceed";
+  const text = d === "yield" ? "YIELD" : d === "proceed" ? "PROCEED" : dec || "—";
+  return el("span", { class: `pill ${cls}` }, text);
+}
+
+function verdictPill(v) {
+  const map = { near_miss: ["pill-near", "NEAR MISS"], clear: ["pill-clear", "CLEAR"], unparsed: ["pill-unparsed", "Couldn't read verdict"] };
+  const pair = map[(v || "").toLowerCase()] || ["pill-unparsed", v || "—"];
+  return el("span", { class: `pill ${pair[0]}` }, pair[1]);
+}
+
+function validWandb(url) {
+  return typeof url === "string" && /^https:\/\/([a-z0-9-]+\.)*wandb\.ai\//.test(url);
+}
+
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeTraining(raw) {
+  const out = { metrics: null, predictions: [], wandb_url: null, dataset: {}, model: {}, baselines: { majority: null, distance_rule: null }, config: {} };
+  if (!raw || typeof raw !== "object") return out;
+  const root = raw.metrics && typeof raw.metrics === "object" ? raw.metrics : raw;
+  out.metrics = root;
+  const ds = root.dataset || {};
+  out.dataset = {
+    total: num(ds.total ?? raw.n_total),
+    labeled: num(ds.labeled),
+    unparsed: num(ds.unparsed),
+    train: num(ds.train ?? raw.n_train),
+    test: num(ds.test ?? raw.n_test),
+    label_mix: ds.label_mix || root.label_mix || {},
+    by_location: ds.by_location || {},
+  };
+  const m = root.model || root;
+  const conf = m.confusion || m.confusion_matrix || root.confusion;
+  let matrix = null;
+  let labels = ["yield", "proceed"];
+  if (conf) {
+    if (Array.isArray(conf)) matrix = conf;
+    else { matrix = conf.matrix; labels = conf.labels || labels; }
+  }
+  out.model = {
+    accuracy: num(m.accuracy ?? root.accuracy),
+    macro_f1: num(m.macro_f1 ?? m.f1_macro ?? root.macro_f1 ?? root.f1_macro),
+    yield_precision: num(m.yield_precision ?? root.yield_precision),
+    yield_recall: num(m.yield_recall ?? root.yield_recall),
+    threshold: num(m.threshold ?? root.threshold) ?? 0.5,
+    confusion: matrix ? { labels, matrix } : null,
+    per_location: m.per_location || root.per_location || {},
+  };
+  const bl = root.baselines || {};
+  function pickBaseline(name, alt) {
+    return bl[name] || root[name] || root[`baseline_${name}`] || (alt ? root[alt] : null) || null;
+  }
+  out.baselines.majority = pickBaseline("majority");
+  out.baselines.distance_rule = pickBaseline("distance_rule", "distance");
+  out.config = root.config || {};
+  const preds = Array.isArray(raw.predictions) ? raw.predictions : [];
+  out.predictions = preds.map((row) => {
+    const r = { ...row };
+    let media = row.media || row.media_url || "";
+    if (!media && row.source) media = "api/media?source=" + encodeURIComponent(row.source);
+    r.media = media;
+    return r;
+  });
+  out.wandb_url = validWandb(raw.wandb_url) ? raw.wandb_url : null;
+  return out;
+}
+
+let trainingState = { status: "loading", data: null, error: null };
+let clipShowAll = false;
+let clipScene = "all";
+let clipFilter = "all";
+let wandbUrl = null;
+
+const NAV = [
+  ["#problem", "Problem", "1"], ["#idea", "How it learns", "2"], ["#score", "Scoreboard", "3"],
+  ["#clips", "Clips", "4"], ["#desk", "Live desk", "5"], ["#details", "Under the hood", "6", "nav-hide-narrow"],
+  ["#limits", "Limits", "7", "nav-hide-narrow"],
+];
+
+function buildNav() {
+  const box = document.getElementById("nav-links");
+  NAV.forEach(([href, label, , extra]) => box.appendChild(el("a", { href, class: extra || "", onclick: (ev) => { ev.preventDefault(); scrollToSection(href); } }, label)));
+  const wb = el("button", { type: "button", class: "btn btn-secondary", id: "nav-wb", disabled: true, title: "Run link not published yet" }, "W&B run ↗");
+  box.appendChild(wb);
+}
+
+function setWandbButtons(url) {
+  wandbUrl = url;
+  const tip = url ? null : "Run link not published yet";
+  ["nav-wb", "hero-wb", "foot-wb"].forEach((id) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = !url;
+    if (url) { b.removeAttribute("title"); b.onclick = () => window.open(url, "_blank", "noopener"); }
+    else b.title = tip;
+  });
+}
+
+function buildHeroActions() {
+  const box = document.getElementById("hero-actions");
+  box.appendChild(el("a", { href: "#clips", class: "btn btn-primary", onclick: (ev) => { ev.preventDefault(); scrollToSection("#clips"); } }, "See it decide"));
+  box.appendChild(el("a", { href: "#desk", class: "btn btn-secondary", onclick: (ev) => { ev.preventDefault(); scrollToSection("#desk"); } }, "Try the live desk"));
+  box.appendChild(el("button", { type: "button", class: "btn btn-secondary", id: "hero-wb", disabled: true, title: "Run link not published yet" }, "Open the W&B run ↗"));
+}
+
+function fmtTime(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function confusionCorrect(cm) {
+  if (!cm || !cm.matrix) return null;
+  const m = cm.matrix;
+  let s = 0;
+  for (let i = 0; i < m.length; i++) if (m[i][i] != null) s += m[i][i];
+  return s;
+}
+
+function plainAgreement(contender, testN) {
+  const acc = num(contender.accuracy);
+  if (acc == null) return { big: "—", label: "agrees with Cosmos", secondary: "", title: "" };
+  const cm = contender.confusion || contender.confusion_matrix;
+  const correct = confusionCorrect(cm);
+  const countSecondary = correct != null && testN != null ? `${correct} of ${testN} clips it never saw` : (acc != null ? `accuracy ${acc.toFixed(2)}` : "");
+  if (testN != null && testN < 10 && correct != null) {
+    return { big: `${correct} of ${testN}`, label: "agrees with Cosmos", secondary: countSecondary, title: `accuracy ${acc}` };
+  }
+  const n10 = Math.round(acc * 10);
+  return { big: `${n10} in 10`, label: "agrees with Cosmos", secondary: countSecondary, title: `accuracy ${acc}` };
+}
+
+function yieldPlain(contender) {
+  const rec = num(contender.yield_recall);
+  const cm = contender.confusion || contender.confusion_matrix;
+  if (cm && cm.matrix && cm.labels) {
+    const yi = cm.labels.indexOf("yield");
+    if (yi >= 0) {
+      const row = cm.matrix[yi];
+      const totalYield = row.reduce((a, b) => a + b, 0);
+      const caught = row[yi] ?? 0;
+      if (totalYield > 0) {
+        return { big: `${caught} of ${totalYield}`, label: "catches yield moments", secondary: rec != null ? `yield recall ${rec.toFixed(2)}` : "", title: rec != null ? `yield precision ${contender.yield_precision} · recall ${rec}` : "" };
+      }
+    }
+  }
+  if (rec != null) return { big: "—", label: "catches yield moments", secondary: `yield recall ${rec.toFixed(2)}`, title: "" };
+  return { big: "—", label: "catches yield moments", secondary: "", title: "" };
+}
+
+function scrollToSection(sel) {
+  const node = document.querySelector(sel);
+  if (!node) return;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+}
+
+function studentConfidence(row, threshold) {
+  const p = num(row.model?.p_yield) ?? 0.5;
+  const dec = row.model?.decision;
+  const conf = dec === "yield" ? p : 1 - p;
+  return Math.round(conf * 100);
+}
+
+function sortPredictions(rows) {
+  return [...rows].sort((a, b) => {
+    const da = a.correct ? 1 : 0;
+    const db = b.correct ? 1 : 0;
+    if (da !== db) return da - db;
+    return studentConfidence(b, 0.5) - studentConfidence(a, 0.5);
+  });
+}
+
+function verifyGalleryContainment() {
+  const cards = document.querySelectorAll("#clip-grid .clip-card");
+  if (!cards.length) return "SKIP no cards";
+  let overflow = 0;
+  let dotsHidden = 0;
+  cards.forEach((card) => {
+    const body = card.querySelector(".clip-body");
+    if (!body) return;
+    const bodyStyle = getComputedStyle(body);
+    const padR = parseFloat(bodyStyle.paddingRight) || 16;
+    const limit = body.getBoundingClientRect().right - padR;
+    body.querySelectorAll("*").forEach((node) => {
+      const r = node.getBoundingClientRect();
+      if (r.width > 0 && r.right > limit + 1) overflow += 1;
+    });
+    body.querySelectorAll(".dot").forEach((dot) => {
+      const r = dot.getBoundingClientRect();
+      if (r.width <= 0.5) dotsHidden += 1;
+    });
+  });
+  if (overflow || dotsHidden) return `FAIL overflow=${overflow} hiddenDots=${dotsHidden}`;
+  return `PASS ${cards.length} cards contained, all dots visible`;
+}
+
+function verifyBadgeNoWrap() {
+  const cards = document.querySelectorAll("#clip-grid .clip-card");
+  if (!cards.length) return "SKIP no cards";
+  let wrapped = 0;
+  cards.forEach((card) => {
+    const block = card.querySelector(".badge-block");
+    if (!block) return;
+    block.querySelectorAll("[class]").forEach((node) => {
+      const cls = node.className || "";
+      if (!/(badge|chip|pill)/i.test(cls)) return;
+      const cs = getComputedStyle(node);
+      const lh = parseFloat(cs.lineHeight);
+      const lineH = Number.isFinite(lh) && lh > 0 ? lh : 16;
+      const h = node.getBoundingClientRect().height;
+      if (h > lineH * 1.6) wrapped += 1;
+    });
+  });
+  return wrapped ? `FAIL ${wrapped} wrapped badge/chip/pill elements` : `PASS 0 badge/chip/pill wraps in ${cards.length} cards`;
+}
+
+function verifyPipelineContainment() {
+  const svg = document.getElementById("pipeline-svg");
+  if (!svg) return "FAIL no svg";
+  let bad = 0;
+  svg.querySelectorAll("g").forEach((g) => {
+    const r = g.querySelector("rect.pipe-step");
+    if (!r) return;
+    const rb = r.getBBox();
+    g.querySelectorAll("text").forEach((t) => {
+      const tb = t.getBBox();
+      if (tb.x < rb.x - 1 || tb.y < rb.y - 1 || tb.x + tb.width > rb.x + rb.width + 1 || tb.y + tb.height > rb.y + rb.height + 1) bad += 1;
+    });
+  });
+  return bad ? `FAIL ${bad} text boxes overflow rects` : "PASS all text inside rects (0 overflows)";
+}
+
+function renderPipeline(data) {
+  const svg = document.getElementById("pipeline-svg");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  const ns = "http://www.w3.org/2000/svg";
+  const total = data?.dataset?.total;
+  const labeled = data?.dataset?.labeled;
+  const test = data?.dataset?.test;
+  const featLen = (data?.config?.features || []).length;
+  function textNS(cx, y, txt, size, fill, weight) {
+    const t = document.createElementNS(ns, "text");
+    t.setAttribute("x", cx); t.setAttribute("y", y); t.setAttribute("fill", fill || "#E6EDF3");
+    t.setAttribute("font-size", size); t.setAttribute("text-anchor", "middle");
+    if (weight) t.setAttribute("font-weight", weight);
+    t.textContent = txt; return t;
+  }
+  function line(x1, y1, x2, y2, cls) {
+    const l = document.createElementNS(ns, "line");
+    l.setAttribute("class", cls || "pipe-line"); l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    svg.appendChild(l);
+  }
+  const nodes = [
+    { x: 0, y: 148, w: 200, h: 104, cls: "", title: "VAST DataEngine ingested and indexed the archive", tech: "VAST S3 + VastDB", lines: ["Stores and indexes", "the footage"], data: total != null ? `${total} five-second clips` : "—" },
+    { x: 240, y: 148, w: 200, h: 104, cls: "", title: "POST /api/v1/search, top 50 per query", tech: "Cosmos Embed", lines: ["Finds the moments", "that matter"], data: "4 scenario searches" },
+    { x: 500, y: 16, w: 260, h: 112, cls: "teacher", title: "POST /api/v1/videos/synthesize with a labeling prompt; caption-grounded", tech: "Cosmos Reason", lines: ["Teacher: labels yield", "or proceed, and why"], data: labeled != null ? `${labeled} labels` : "—" },
+    { x: 500, y: 244, w: 260, h: 112, cls: "", title: "GET /api/v1/videos/detections; any non-person box counts as a machine", tech: "YOLO11", lines: ["Ruler: people and", "machines in frame"], data: featLen ? `${featLen} geometry features` : "—" },
+    { x: 780, y: 130, w: 380, h: 112, cls: "student", title: "logistic regression, balanced classes, split by video, seed 42", tech: "Student model", lines: ["Learns the call.", "Runs on a CPU."], data: test != null ? `tested on ${test} unseen clips` : "—" },
+  ];
+  const built = [];
+  nodes.forEach((n) => {
+    const g = document.createElementNS(ns, "g");
+    const r = document.createElementNS(ns, "rect");
+    r.setAttribute("class", `pipe-node pipe-step ${n.cls}`.trim());
+    r.setAttribute("x", n.x); r.setAttribute("y", n.y); r.setAttribute("width", n.w); r.setAttribute("height", n.h);
+    r.setAttribute("rx", "12"); r.setAttribute("tabindex", "0");
+    const tt = document.createElementNS(ns, "title"); tt.textContent = n.title; r.appendChild(tt);
+    g.appendChild(r);
+    const cx = n.x + n.w / 2;
+    const texts = [
+      textNS(cx, n.y + 30, n.tech, 16, "#E6EDF3", "600"),
+      textNS(cx, n.y + 54, n.lines[0], 14, "#E6EDF3"),
+      textNS(cx, n.y + 72, n.lines[1], 14, "#E6EDF3"),
+      textNS(cx, n.y + 94, n.data, 13, "#8B98A5"),
+    ];
+    texts.forEach((t) => g.appendChild(t));
+    svg.appendChild(g);
+    built.push({ g, r, n, texts });
+  });
+  const nextX = [240, 500, 780, 780, 1200];
+  built.forEach(({ r, n, texts }, idx) => {
+    let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+    texts.forEach((t) => {
+      const b = t.getBBox();
+      minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width); maxY = Math.max(maxY, b.y + b.height);
+    });
+    const pad = 12;
+    const maxW = (nextX[idx] ?? 1200) - n.x - 8;
+    const needW = Math.min(maxW, Math.max(n.w, maxX - minX + pad * 2));
+    const needH = Math.max(n.h, maxY - minY + pad * 2);
+    r.setAttribute("width", needW);
+    r.setAttribute("height", needH);
+    const cx = n.x + needW / 2;
+    texts.forEach((t) => t.setAttribute("x", cx));
+    const dy = pad - (minY - n.y);
+    if (dy > 0) texts.forEach((t) => t.setAttribute("y", String(parseFloat(t.getAttribute("y")) + dy)));
+  });
+  const N = built.map((b) => ({ x: b.n.x, y: b.n.y, w: parseFloat(b.r.getAttribute("width")), h: parseFloat(b.r.getAttribute("height")) }));
+  line(N[0].x + N[0].w, N[0].y + N[0].h / 2, N[1].x, N[1].y + N[1].h / 2);
+  line(N[1].x + N[1].w, N[1].y + N[1].h / 2, N[2].x, N[2].y + N[2].h / 2);
+  line(N[1].x + N[1].w, N[1].y + N[1].h / 2, N[3].x, N[3].y + N[3].h / 2);
+  line(N[2].x + N[2].w, N[2].y + N[2].h / 2, N[4].x, N[4].y + N[4].h / 2);
+  line(N[3].x + N[3].w, N[3].y + N[3].h / 2, N[4].x, N[4].y + N[4].h / 2);
+  const bandY = 400;
+  const bandX = N[2].x;
+  const bandW = 1200 - bandX;
+  const band = document.createElementNS(ns, "rect");
+  band.setAttribute("class", "pipe-node"); band.setAttribute("x", String(bandX)); band.setAttribute("y", String(bandY));
+  band.setAttribute("width", String(bandW)); band.setAttribute("height", "36"); band.setAttribute("rx", "8");
+  const ft = document.createElementNS(ns, "title"); ft.textContent = "W&B run + yield-dataset and yield-model artifacts with lineage"; band.appendChild(ft);
+  svg.appendChild(band);
+  svg.appendChild(textNS(bandX + bandW / 2, bandY + 23, "Weights & Biases — Lab notebook: every dataset, run, and model", 14, "#E6EDF3", "600"));
+  [2, 3, 4].forEach((i) => {
+    line(N[i].x + N[i].w / 2, N[i].y + N[i].h, N[i].x + N[i].w / 2, bandY, "pipe-tick");
+  });
+  window.__pipelineContainment = verifyPipelineContainment();
+}
+
+function renderHeroStats(data, status) {
+  const box = document.getElementById("hero-stats");
+  while (box.firstChild) box.removeChild(box.firstChild);
+  const tiles = [
+    { num: status === "ok" && data?.dataset?.labeled != null ? String(data.dataset.labeled) : "—", cap: status === "ok" ? "clips labeled by Cosmos" : "Results not published yet" },
+    { num: "—", cap: status === "ok" ? "test clips where the student agrees with Cosmos" : "Results not published yet" },
+    { num: "CPU", cap: "is all the student needs to run" },
+  ];
+  if (status === "ok" && data) {
+    const agree = data.predictions.filter((r) => r.correct).length;
+    const test = data.dataset.test ?? data.predictions.length;
+    tiles[1].num = `${agree} of ${test}`;
+  }
+  tiles.forEach((t) => {
+    const loading = status === "loading";
+    box.appendChild(el("div", { class: "stat-tile" },
+      loading && t.num === "—" ? el("div", { class: "shimmer", style: "height:24px;width:60%" }) : el("div", { class: "num" }, t.num),
+      el("div", { class: "cap" }, t.cap),
+    ));
+  });
+}
+
+function renderScoreboard(data, status) {
+  const grid = document.getElementById("score-grid");
+  const verdictEl = document.getElementById("score-verdict");
+  const lede = document.getElementById("score-lede");
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  verdictEl.textContent = "";
+  if (status === "loading") {
+    lede.textContent = "Tested on held-out clips it never saw during training.";
+    for (let i = 0; i < 3; i++) grid.appendChild(el("div", { class: "card skeleton-card shimmer" }));
+    return;
+  }
+  if (status === "empty") {
+    lede.textContent = "Test split size not reported.";
+    grid.appendChild(el("div", { class: "card" }, "Training results aren't published yet. The scoreboard appears here after the first training run."));
+    return;
+  }
+  if (status === "error") {
+    lede.textContent = "Test split size not reported.";
+    grid.appendChild(el("div", { class: "card" }, "Couldn't load training results.", el("button", { type: "button", class: "btn btn-secondary", style: "margin-top:12px", onclick: () => loadTraining(true) }, "Retry")));
+    return;
+  }
+  const test = data.dataset.test ?? data.predictions.length;
+  lede.textContent = test != null ? `Tested on ${test} clips from videos it never saw during training.` : "Tested on held-out clips it never saw during training (count not reported).";
+  const student = data.model;
+  const majority = data.baselines.majority;
+  const distance = data.baselines.distance_rule;
+  const contenders = [];
+  if (student.macro_f1 != null) contenders.push({ key: "student", name: "Our student", sub: "Learns from YOLO geometry", data: student, student: true });
+  if (majority) {
+    const pred = majority.predicts || (data.dataset.label_mix?.proceed >= (data.dataset.label_mix?.yield || 0) ? "proceed" : "yield");
+    contenders.push({ key: "majority", name: `Always ${pred}`, sub: "Ignores the video and always gives the most common answer", data: majority });
+  }
+  if (distance) {
+    const th = num(distance.threshold) ?? 0.08;
+    contenders.push({ key: "distance", name: "Distance rule", sub: `Yields whenever a person is within ${Math.round(th * 100)}% of the screen diagonal of a machine`, data: distance });
+  }
+  let best = -1;
+  const f1s = contenders.map((c) => num(c.data.macro_f1)).filter((v) => v != null);
+  if (f1s.length) best = Math.max(...f1s);
+  const winners = contenders.filter((c) => num(c.data.macro_f1) != null && Math.abs(num(c.data.macro_f1) - best) <= 0.005);
+  const stF1 = num(student.macro_f1);
+  const distF1 = distance ? num(distance.macro_f1) : null;
+  const majF1 = majority ? num(majority.macro_f1) : null;
+  const majPred = majority?.predicts || "proceed";
+  if (winners.length === 1 && winners[0].key === "student") verdictEl.textContent = "Our student beats both simple baselines.";
+  else if (winners.some((w) => w.key === "distance") && stF1 != null && distF1 != null && distF1 > stF1 + 0.004) verdictEl.textContent = "Honest result: the simple distance rule scored higher than our student this run.";
+  else if (winners.some((w) => w.key === "distance") && stF1 != null && distF1 != null && Math.abs(distF1 - stF1) <= 0.005) verdictEl.textContent = "Our student and the distance rule are tied.";
+  else if (winners.some((w) => w.key === "majority") && (!stF1 || !majF1 || majF1 >= stF1 - 0.005)) verdictEl.textContent = `Honest result: our student did not beat always answering '${majPred}'.`;
+  else verdictEl.textContent = "Our student beats both simple baselines.";
+  contenders.forEach((c) => {
+    const card = el("div", { class: `card score-card${c.student ? " student" : ""}` });
+    const head = el("div", { class: "score-card-head" }, c.name);
+    if (winners.some((w) => w.key === c.key)) head.appendChild(el("span", { class: "pill pill-best" }, "Best balanced score"));
+    card.appendChild(head);
+    card.appendChild(el("div", { class: "score-desc" }, c.sub));
+    const agr = plainAgreement(c.data, test);
+    const yld = yieldPlain(c.data);
+    const m1 = el("div", { class: "score-metric", title: agr.title || "" },
+      el("div", { class: "score-metric-big" }, agr.big),
+      el("div", { class: "score-metric-label" }, agr.label),
+    );
+    if (agr.secondary) m1.appendChild(el("div", { class: "score-secondary" }, agr.secondary));
+    card.appendChild(m1);
+    const m2 = el("div", { class: "score-metric", title: yld.title || "" },
+      el("div", { class: "score-metric-big" }, yld.big),
+      el("div", { class: "score-metric-label" }, yld.label),
+    );
+    if (yld.secondary) m2.appendChild(el("div", { class: "score-secondary" }, yld.secondary));
+    card.appendChild(m2);
+    const f1 = num(c.data.macro_f1);
+    const barLabel = f1 != null ? `Balanced score ${f1.toFixed(2)}` : "Balanced score not reported";
+    card.appendChild(el("p", { class: "score-secondary", style: "margin-top:auto", title: f1 != null ? `macro F1 ${f1}` : "" }, barLabel));
+    card.appendChild(el("div", { class: "f1-bar" }, el("div", { class: `f1-fill ${c.student ? "student" : "base"}`, style: `width:${Math.max(0, Math.min(100, (f1 || 0) * 100))}%` })));
+    grid.appendChild(card);
+  });
+  renderScoreDetails(data);
+}
+
+function renderScoreDetails(data) {
+  const body = document.getElementById("score-details-body");
+  while (body.firstChild) body.removeChild(body.firstChild);
+  const table = el("table", { style: "width:100%;border-collapse:collapse;font-size:13px;margin-top:12px" });
+  const hdr = el("tr");
+  ["", "Indoor acc", "Indoor F1", "Synthetic acc", "Synthetic F1"].forEach((h) => hdr.appendChild(el("th", { style: "text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)" }, h)));
+  table.appendChild(hdr);
+  const names = [["student", data.model], ["majority", data.baselines.majority], ["distance", data.baselines.distance_rule]];
+  names.forEach(([label, cont]) => {
+    if (!cont) return;
+    const tr = el("tr");
+    tr.appendChild(el("td", { style: "padding:4px 8px" }, label));
+    ["indoor", "warehouse3"].forEach((loc) => {
+      const pl = cont.per_location?.[loc] || {};
+      tr.appendChild(el("td", { style: "padding:4px 8px" }, pl.accuracy != null ? pl.accuracy.toFixed(2) : "—"));
+      tr.appendChild(el("td", { style: "padding:4px 8px" }, pl.macro_f1 != null ? pl.macro_f1.toFixed(2) : "—"));
+    });
+    table.appendChild(tr);
+  });
+  body.appendChild(table);
+  const cm = data.model.confusion;
+  if (cm && cm.matrix) {
+    const [yy, yp, py, pp] = cm.matrix.flat().length === 4 ? cm.matrix.flat() : [0, 0, 0, 0];
+    body.appendChild(el("p", { style: "margin-top:12px;font-size:14px" },
+      `Cosmos said yield, student said yield: ${yy}. Cosmos said yield, student said proceed: ${yp}. Cosmos said proceed, student said yield: ${py}. Cosmos said proceed, student said proceed: ${pp}.`));
+  }
+}
+
+function filteredPredictions(data) {
+  let rows = sortPredictions(data.predictions);
+  if (clipScene !== "all") rows = rows.filter((r) => r.location === clipScene);
+  if (clipFilter === "disagreements") rows = rows.filter((r) => !r.correct);
+  if (clipFilter === "agreements") rows = rows.filter((r) => r.correct);
+  return rows;
+}
+
+function renderClipGallery(data, status) {
+  const grid = document.getElementById("clip-grid");
+  const summary = document.getElementById("clips-summary");
+  const controls = document.getElementById("clip-controls");
+  const more = document.getElementById("clip-more");
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  while (controls.firstChild) controls.removeChild(controls.firstChild);
+  while (more.firstChild) more.removeChild(more.firstChild);
+  if (status === "loading") {
+    summary.textContent = "Loading clips…";
+    for (let i = 0; i < 4; i++) grid.appendChild(el("div", { class: "card skeleton-card" }, el("div", { class: "shimmer", style: "aspect-ratio:16/9" })));
+    return;
+  }
+  if (status === "empty" || status === "error") {
+    summary.textContent = status === "error" ? "Couldn't load training results." : "No test clips yet.";
+    if (status === "error") more.appendChild(el("button", { type: "button", class: "btn btn-secondary", onclick: () => loadTraining(true) }, "Retry"));
+    return;
+  }
+  const n = data.predictions.length;
+  const agree = data.predictions.filter((r) => r.correct).length;
+  summary.textContent = `Agrees on ${agree} of ${n} · ${n - agree} disagreements shown first`;
+  const locs = [...new Set(data.predictions.map((r) => r.location).filter(Boolean))];
+  const sceneSeg = el("div", { class: "seg", role: "group", "aria-label": "Scene filter" });
+  [["all", "All scenes"], ...locs.map((l) => [l, titleCaseLoc(l)])].forEach(([val, lab]) => {
+    sceneSeg.appendChild(el("button", { type: "button", "aria-pressed": clipScene === val ? "true" : "false", onclick: () => { clipScene = val; clipShowAll = false; renderClipGallery(trainingState.data, trainingState.status); } }, lab));
+  });
+  const showSeg = el("div", { class: "seg", role: "group", "aria-label": "Agreement filter" });
+  [["all", "All"], ["disagreements", "Disagreements"], ["agreements", "Agreements"]].forEach(([val, lab]) => {
+    showSeg.appendChild(el("button", { type: "button", "aria-pressed": clipFilter === val ? "true" : "false", onclick: () => { clipFilter = val; clipShowAll = false; renderClipGallery(trainingState.data, trainingState.status); } }, lab));
+  });
+  controls.appendChild(sceneSeg);
+  controls.appendChild(showSeg);
+  const rows = filteredPredictions(data);
+  summary.textContent = `Showing ${rows.length} clips · Agrees on ${agree} of ${n}`;
+  if (!rows.length) {
+    grid.appendChild(el("div", { class: "card" }, "No clips match these filters.", el("button", { type: "button", class: "btn btn-secondary", style: "margin-top:12px", onclick: () => { clipScene = "all"; clipFilter = "all"; renderClipGallery(data, status); } }, "Clear filters")));
+    return;
+  }
+  const shown = clipShowAll ? rows : rows.slice(0, 6);
+  shown.forEach((row) => grid.appendChild(buildClipCard(row, data.model.threshold)));
+  if (!clipShowAll && rows.length > 6) more.appendChild(el("button", { type: "button", class: "btn btn-secondary", onclick: () => { clipShowAll = true; renderClipGallery(data, status); } }, `Show all ${rows.length}`));
+  requestAnimationFrame(() => {
+    window.__galleryContainment = verifyGalleryContainment();
+    window.__galleryBadgeWrap = verifyBadgeNoWrap();
+  });
+}
+
+function buildClipCard(row, threshold) {
+  const card = el("article", { class: "card clip-card" });
+  card.appendChild(el("div", { class: `clip-bar ${row.correct ? "agree" : "disagree"}` }));
+  const wrap = el("div", { class: "clip-video-wrap" });
+  const src = mediaUrl(row.media);
+  if (src && isFixture) {
+    wrap.appendChild(el("div", { class: "no-video" }, "Sample clip: plays on the live app"));
+  } else if (src) {
+    const vid = el("video", { controls: "", muted: "", playsinline: "", preload: "none", src });
+    vid.addEventListener("error", () => {
+      while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+      wrap.appendChild(el("div", { class: "no-video" }, "This clip can't play right now"));
+    });
+    wrap.appendChild(vid);
+  } else wrap.appendChild(el("div", { class: "no-video" }, "No clip for this moment"));
+  card.appendChild(wrap);
+  const body = el("div", { class: "clip-body" });
+  const metaText = `${fmtTime(row.segment_start_sec)} · ${titleCaseLoc(row.location)} · ${row.camera_id || ""}`;
+  body.appendChild(el("div", { class: "badge-block" },
+    el("div", { class: "badge-row" },
+      el("span", { class: "badge-tag" }, row.correct ? "✓ Agrees" : "≠ Disagrees"),
+      el("span", { class: "pill", style: "background:var(--surface-2);text-transform:none;font-weight:600" }, machineLabel(row.cosmos?.machine)),
+    ),
+    el("div", { class: "clip-meta-line", title: metaText }, metaText),
+  ));
+  body.appendChild(el("div", { class: "decision-row" },
+    el("div", { class: "decision-label" }, el("span", { class: "dot", style: "background:var(--teacher)" }), el("span", {}, "Cosmos")),
+    el("div", { class: "decision-content" }, decisionPill(row.cosmos?.decision)),
+  ));
+  body.appendChild(el("p", { class: "row-teacher-reason", title: sanitize(row.cosmos?.reason || "") }, sanitize(row.cosmos?.reason || "")));
+  const conf = studentConfidence(row, threshold);
+  const meter = el("span", { class: "conf-meter" }, el("span", { class: "conf-fill", style: `width:${conf}%` }));
+  body.appendChild(el("div", { class: "decision-row" },
+    el("div", { class: "decision-label" }, el("span", { class: "dot", style: "background:var(--student)" }), el("span", {}, "Student")),
+    el("div", { class: "decision-content" }, decisionPill(row.model?.decision), el("span", {}, `${conf}% sure`), meter),
+  ));
+  const det = el("details");
+  det.appendChild(el("summary", {}, "What Cosmos saw"));
+  det.appendChild(el("p", {}, sanitize(row.caption || "")));
+  body.appendChild(det);
+  card.appendChild(body);
+  return card;
+}
+
+function buildDeskCard(hit, saved) {
+  const card = el("article", { class: "card clip-card" });
+  if (saved) card.appendChild(el("span", { class: "pill pill-unparsed", style: "margin:12px" }, "Saved result"));
+  const wrap = el("div", { class: "clip-video-wrap" });
+  const src = mediaUrl(hit.media);
+  if (src && isFixture) {
+    wrap.appendChild(el("div", { class: "no-video" }, "Sample clip: plays on the live app"));
+  } else if (src) {
+    const vid = el("video", { controls: "", muted: "", playsinline: "", preload: "none", src });
+    vid.addEventListener("error", () => { while (wrap.firstChild) wrap.removeChild(wrap.firstChild); wrap.appendChild(el("div", { class: "no-video" }, "This clip can't play right now")); });
+    wrap.appendChild(vid);
+  } else wrap.appendChild(el("div", { class: "no-video" }, "No clip for this moment"));
+  card.appendChild(wrap);
+  const body = el("div", { class: "clip-body" });
+  body.appendChild(verdictPill(hit.verdict));
+  if (hit.severity) body.appendChild(el("p", { class: "score-secondary" }, `${hit.severity} severity`));
+  if (hit.action) body.appendChild(el("p", {}, sanitize(hit.action)));
+  body.appendChild(el("p", {}, "YOLO saw:"));
+  const labels = hit.labels || [];
+  if (!labels.length) body.appendChild(el("p", { class: "score-secondary" }, "No boxes"));
+  else {
+    const lc = el("div", { class: "label-chips" });
+    labels.forEach((lb) => lc.appendChild(el("span", { class: "label-chip" }, `${lb.label || lb}${lb.count != null ? ` (${lb.count})` : ""}`)));
+    body.appendChild(lc);
+  }
+  const sc = num(hit.score);
+  body.appendChild(el("p", { style: "color:var(--muted);font-size:13px" }, `${titleCaseLoc(hit.location)} · ${hit.camera_id || ""} · match ${sc != null ? sc.toFixed(2) : "—"}`));
+  const det = el("details");
+  det.appendChild(el("summary", {}, "What Cosmos saw"));
+  det.appendChild(el("p", {}, sanitize(hit.caption || "")));
+  body.appendChild(det);
+  card.appendChild(body);
+  return card;
+}
+
+function renderSteps(data) {
+  const list = document.getElementById("steps-list");
+  while (list.firstChild) list.removeChild(list.firstChild);
+  const cfg = data?.config || {};
+  const feats = (cfg.features || []).join(" · ") || "features not reported";
+  const seed = num(cfg.seed);
+  const Cval = num(cfg.C);
+  const learnMono = seed != null && Cval != null
+    ? `split by video · seed ${seed} · C=${Cval} by grouped cross-validation`
+    : "split by video · seed not reported · C not reported";
+  const items = [
+    ["Find.", "Cosmos Embed searches every clip in both warehouse scenes for four situations.", "POST /api/v1/search · 4 queries · top_k 50 · every segment in indoor + warehouse3"],
+    ["Label.", "Cosmos Reason reads each clip's description and answers yield or proceed, with a reason.", "POST /api/v1/videos/synthesize · JSON per clip · yield if a person is in or entering a moving machine's path, or within arm's reach"],
+    ["Measure.", "YOLO's boxes become numbers: how close people get to machines, and whether the gap is closing.", feats],
+    ["Learn.", "A logistic regression learns the call from those numbers, tested on videos it never saw.", learnMono],
+    ["Record.", "W&B stores the dataset, the run, and the model, linked together.", "run + artifacts yield-dataset → yield-model"],
+  ];
+  items.forEach(([bold, plain, mono]) => {
+    list.appendChild(el("li", {}, el("p", {}, el("strong", {}, bold + " "), plain), el("p", { class: "mono", style: "color:var(--muted);margin-top:4px" }, mono)));
+  });
+}
+
+function renderCredits() {
+  const box = document.getElementById("credits");
+  const chips = [
+    ["VAST S3 · VastDB · DataEngine", "stores, indexes, and processes the footage"],
+    ["NVIDIA Cosmos Embed", "finds the moments"],
+    ["NVIDIA Cosmos Reason", "teacher labels and summaries"],
+    ["YOLO11", "people and machine boxes"],
+    ["W&B Inference", "near-miss verdicts"],
+    ["W&B Models + Weave", "runs, artifacts, verdict logs"],
+    ["CoreWeave", "GPUs under the models"],
+    ["Kubernetes", "hosts this app"],
+    ["Cursor", "how we built it"],
+  ];
+  chips.forEach(([n, r]) => box.appendChild(el("div", { class: "credit-chip" }, el("b", {}, n), el("span", {}, r))));
+  box.appendChild(el("div", { class: "credit-chip", style: "opacity:0.7" }, el("b", {}, "Canary-1B"), el("span", {}, "spoken questions (needs HTTPS; off on this host)")));
+}
+
+function renderFooter() {
+  const foot = document.getElementById("footer-links");
+  foot.appendChild(el("button", { type: "button", class: "btn btn-secondary", id: "foot-wb", disabled: true, style: "margin-right:8px" }, "Open the W&B run ↗"));
+  foot.appendChild(el("a", { href: BASE || "./" }, "Classic desk"));
+  foot.appendChild(el("a", { href: api("training") }, "Training details"));
+  foot.appendChild(el("span", { style: "display:block;margin-top:12px" }, "Team 24 · VAST Builders Challenge"));
+  setWandbButtons(wandbUrl);
+}
+
+async function loadTraining(retry) {
+  trainingState = { status: "loading", data: null, error: null };
+  renderAll();
+  try {
+    if (fixtureMode === "404") throw Object.assign(new Error("404"), { code: 404 });
+    if (fixtureMode === "error") throw Object.assign(new Error("500"), { code: 500 });
+    let raw;
+    if (isFixture) {
+      const delay = fixtureMode === "slow" ? 4000 : 0;
+      if (delay) await new Promise((r) => setTimeout(r, delay));
+      const res = await fetch(api("fixtures/training_sample.json"));
+      if (!res.ok) throw new Error(String(res.status));
+      raw = await res.json();
+      if (fixtureMode === "empty") raw = { ...raw, predictions: [] };
+      if (fixtureMode === "baseline-wins") {
+        const mf = raw.metrics?.model?.macro_f1 ?? 0.71;
+        if (raw.metrics?.baselines?.distance_rule) raw.metrics.baselines.distance_rule.macro_f1 = mf + 0.05;
+      }
+    } else {
+      const res = await fetch(api("api/training"));
+      if (res.status === 404) { trainingState = { status: "empty", data: null, error: null }; renderAll(); return; }
+      if (!res.ok) throw new Error(String(res.status));
+      raw = await res.json();
+    }
+    const data = normalizeTraining(raw);
+    trainingState = { status: "ok", data, error: null };
+    setWandbButtons(data.wandb_url);
+  } catch (e) {
+    trainingState = { status: e.code === 404 ? "empty" : "error", data: null, error: e };
+  }
+  renderAll();
+}
+
+function renderAll() {
+  try { renderHeroStats(trainingState.data, trainingState.status); } catch (e) { renderHeroStats(null, "error"); }
+  try { renderPipeline(trainingState.data); } catch (e) { renderPipeline(null); }
+  try { renderScoreboard(trainingState.data, trainingState.status); } catch (e) { renderScoreboard(null, "error"); }
+  try { renderClipGallery(trainingState.data, trainingState.status); } catch (e) { renderClipGallery(null, "error"); }
+  try { renderSteps(trainingState.data); } catch (e) { renderSteps(null); }
+}
+
+let deskAbort = null;
+let deskTimer = null;
+let deskStart = 0;
+
+function deskStepsTick() {
+  const ul = document.getElementById("desk-steps");
+  const elapsed = (Date.now() - deskStart) / 1000;
+  const idx = elapsed >= 15 ? 3 : elapsed >= 6 ? 2 : elapsed >= 3 ? 1 : 0;
+  const labels = ["Searching the footage (Cosmos Embed)", "Checking YOLO's boxes", "Asking a W&B-hosted model for a verdict", "Writing the summary (Cosmos Reason)"];
+  while (ul.firstChild) ul.removeChild(ul.firstChild);
+  labels.forEach((lab, i) => ul.appendChild(el("li", { class: i === idx ? "bold" : "" }, lab)));
+}
+
+async function runDesk(body, saved) {
+  const results = document.getElementById("desk-results");
+  const statusEl = document.getElementById("desk-status");
+  const submit = document.getElementById("desk-submit");
+  const steps = document.getElementById("desk-steps");
+  while (results.firstChild) results.removeChild(results.firstChild);
+  if (saved) {
+    renderDeskResponse(saved.response, true);
+    return;
+  }
+  submit.disabled = true;
+  submit.textContent = "Reviewing…";
+  steps.hidden = false;
+  deskStart = Date.now();
+  deskStepsTick();
+  deskTimer = setInterval(deskStepsTick, 500);
+  const elapsedEl = el("span", { id: "desk-elapsed" }, "0s");
+  statusEl.textContent = "";
+  statusEl.appendChild(document.createTextNode("Working… "));
+  statusEl.appendChild(elapsedEl);
+  const tick = setInterval(() => { elapsedEl.textContent = `${Math.floor((Date.now() - deskStart) / 1000)}s`; }, 1000);
+  const cancelBtn = el("button", { type: "button", class: "btn btn-secondary", style: "margin-left:8px", onclick: () => deskAbort?.abort() }, "Cancel");
+  statusEl.appendChild(cancelBtn);
+  deskAbort = new AbortController();
+  const timeout = setTimeout(() => deskAbort.abort(), 120000);
+  try {
+    let data;
+    if (isFixture && fixtureMode !== "error") {
+      await new Promise((r) => setTimeout(r, 2000));
+      const res = await fetch(api("fixtures/review_sample.json"), { signal: deskAbort.signal });
+      if (!res.ok) throw new Error("fail");
+      data = await res.json();
+    } else if (isFixture && fixtureMode === "error") {
+      throw new Error("desk error");
+    } else {
+      const res = await fetch(api("api/review"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: deskAbort.signal });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "fail"); }
+      data = await res.json();
+    }
+    sessionStorage.setItem("desk:last", JSON.stringify({ time: Date.now(), request: body, response: data }));
+    renderDeskResponse(data, false);
+    statusEl.textContent = "";
+  } catch (e) {
+    if (e.name === "AbortError") statusEl.textContent = deskAbort?.signal.aborted && Date.now() - deskStart >= 119000 ? "That took too long. Try again." : "Cancelled.";
+    else statusEl.textContent = "The video search didn't answer. Try again.";
+    offerLastResult();
+  } finally {
+    clearTimeout(timeout);
+    clearInterval(tick);
+    clearInterval(deskTimer);
+    steps.hidden = true;
+    submit.disabled = false;
+    submit.textContent = "Review";
+  }
+}
+
+function offerLastResult() {
+  const raw = sessionStorage.getItem("desk:last");
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    const d = new Date(saved.time);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const statusEl = document.getElementById("desk-status");
+    const btn = el("button", { type: "button", class: "btn btn-secondary", style: "margin-top:8px", onclick: () => renderDeskResponse(saved.response, true) }, `Show the last result (from ${hh}:${mm})`);
+    statusEl.appendChild(btn);
+  } catch (_) { /* ignore */ }
+}
+
+function renderDeskResponse(data, saved) {
+  const results = document.getElementById("desk-results");
+  while (results.firstChild) results.removeChild(results.firstChild);
+  const hits = [];
+  (data.groups || []).forEach((g) => hits.push(...(g.hits || [])));
+  if (!hits.length) {
+    results.appendChild(el("p", {}, "No moments matched. Try 'forklift near a person'."));
+    return;
+  }
+  if (data.summary) {
+    const card = el("div", { class: "card", style: "margin-bottom:16px" });
+    card.appendChild(el("h3", { style: "margin:0 0 8px;font-size:20px" }, "Cosmos summary"));
+    card.appendChild(el("p", {}, sanitize(data.summary)));
+    results.appendChild(card);
+  }
+  if (data.warning) results.appendChild(el("p", { class: "desk-status" }, sanitize(data.warning)));
+  const grid = el("div", { class: "clip-grid" });
+  hits.forEach((h) => grid.appendChild(buildDeskCard(h, saved)));
+  results.appendChild(grid);
+}
+
+async function loadFilters() {
+  const sel = document.getElementById("desk-location");
+  try {
+    let locs = [];
+    if (isFixture) {
+      const res = await fetch(api("fixtures/training_sample.json"));
+      if (res.ok) { const j = await res.json(); locs = [...new Set((j.predictions || []).map((r) => r.location).filter(Boolean))]; }
+    } else {
+      const res = await fetch(api("api/filters"));
+      if (res.ok) { const j = await res.json(); locs = j.locations || []; }
+    }
+    locs.forEach((loc) => sel.appendChild(el("option", { value: loc }, titleCaseLoc(loc))));
+  } catch (_) { /* all scenes only */ }
+}
+
+function initDesk() {
+  const form = document.getElementById("desk-form");
+  const q = document.getElementById("desk-question");
+  const chips = document.getElementById("desk-chips");
+  ["forklift near a person", "robot carrying a pallet near a worker", "empty aisle with no people"].forEach((text) => {
+    chips.appendChild(el("button", { type: "button", class: "chip", onclick: () => { q.value = text; } }, text));
+  });
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const question = (q.value || "").trim() || "person close to a moving vehicle";
+    const location = document.getElementById("desk-location").value;
+    runDesk({ question, location, camera_id: "" });
+  });
+}
+
+document.addEventListener("keydown", (ev) => {
+  if (!(ev.target instanceof Element)) return;
+  if (ev.target.matches("input, select, textarea")) return;
+  const map = { "0": "#top", "1": "#problem", "2": "#idea", "3": "#score", "4": "#clips", "5": "#desk", "6": "#details", "7": "#limits" };
+  if (map[ev.key]) { ev.preventDefault(); scrollToSection(map[ev.key]); }
+});
+
+function initReveal() {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll(".reveal").forEach((el) => { if (reduced) el.classList.add("in"); });
+  if (reduced) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+}
+
+function initPipelineAnim() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const svg = document.getElementById("pipeline-svg");
+  const obs = new IntersectionObserver((entries) => {
+    if (!entries[0].isIntersecting) return;
+    const nodes = svg.querySelectorAll(".pipe-step");
+    nodes.forEach((n, i) => setTimeout(() => n.classList.add("lit"), i * 250));
+    obs.disconnect();
+  }, { threshold: 0.3 });
+  obs.observe(svg);
+}
+
+function fixHeroPillReduced() {
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.querySelector(".hero-pill-proceed")?.setAttribute("opacity", "0");
+  document.querySelector(".hero-pill-yield")?.setAttribute("opacity", "1");
+  const halo = document.querySelector(".hero-halo");
+  if (halo) {
+    halo.setAttribute("fill", "rgba(242, 204, 96, 0.22)");
+    halo.setAttribute("stroke", "rgba(242, 204, 96, 0.55)");
+  }
+}
+
+if (isFixture) document.getElementById("fixture-banner").classList.add("on");
+
+buildNav();
+buildHeroActions();
+renderCredits();
+renderFooter();
+initDesk();
+loadFilters();
+loadTraining(false);
+initReveal();
+initPipelineAnim();
+fixHeroPillReduced();
+})();
+</script>
+</body>
+</html>

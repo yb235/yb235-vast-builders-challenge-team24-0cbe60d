@@ -1,0 +1,88 @@
+{
+  "question": "forklift near a person",
+  "summary": "Sample: Across indoor and synthetic warehouse cameras, several moments show workers near moving carts and forklifts. The clearest near-miss is a person stepping into a forklift path in the synthetic aisle.",
+  "warning": "",
+  "groups": [
+    {
+      "location": "warehouse3",
+      "hits": [
+        {
+          "location": "warehouse3",
+          "camera_id": "sample-cam-2",
+          "score": 0.87,
+          "caption": "Sample: A worker in a blue vest walks in front of a blue forklift as it turns into the aisle.",
+          "verdict": "near_miss",
+          "severity": "high",
+          "action": "Review the clip before the forklift reaches the person.",
+          "labels": [
+            {"label": "person", "count": 2},
+            {"label": "truck", "count": 1}
+          ],
+          "detections": {},
+          "media": "/api/media?source=sample-desk-01"
+        },
+        {
+          "location": "warehouse3",
+          "camera_id": "sample-cam-1",
+          "score": 0.72,
+          "caption": "Sample: An empty synthetic aisle with pallet racks and no people visible.",
+          "verdict": "clear",
+          "severity": "low",
+          "action": "No immediate intervention needed; continue monitoring.",
+          "labels": [],
+          "detections": {},
+          "media": "/api/media?source=sample-desk-02"
+        }
+      ]
+    },
+    {
+      "location": "indoor",
+      "hits": [
+        {
+          "location": "indoor",
+          "camera_id": "sample-cam-3",
+          "score": 0.81,
+          "caption": "Sample: A yellow AGV carrying a pallet passes while a worker stands at a safe distance.",
+          "verdict": "clear",
+          "severity": "medium",
+          "action": "Note spacing; no stop required at this moment.",
+          "labels": [
+            {"label": "person", "count": 1},
+            {"label": "car", "count": 1}
+          ],
+          "detections": {},
+          "media": "/api/media?source=sample-desk-03"
+        },
+        {
+          "location": "indoor",
+          "camera_id": "sample-cam-4",
+          "score": 0.65,
+          "caption": "Sample: A humanoid robot and a worker share the aisle; motion is hard to read from one frame.",
+          "verdict": "unparsed",
+          "severity": "",
+          "action": "",
+          "labels": [
+            {"label": "person", "count": 1}
+          ],
+          "detections": {},
+          "media": "/api/media?source=sample-desk-04"
+        },
+        {
+          "location": "indoor",
+          "camera_id": "sample-cam-1",
+          "score": 0.79,
+          "caption": "Sample: Forklift forks visible near a hard-hat worker stepping backward from the lane.",
+          "verdict": "near_miss",
+          "severity": "high",
+          "action": "Pause forklift movement until the worker clears the lane.",
+          "labels": [
+            {"label": "person", "count": 1},
+            {"label": "truck", "count": 1}
+          ],
+          "detections": {},
+          "media": "/api/media?source=sample-desk-05"
+        }
+      ]
+    }
+  ]
+}
